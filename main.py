@@ -2,12 +2,14 @@
 #!/usr/bin/python3
 
 from cmath import exp
+import os
 import r2pipe
 import json
 from tqdm import tqdm  # !! pip install tqdm -> nice library for progress bar
 from utils import *
 from shared import *
 import networkx as nx
+import sys
 
 #TODO
 #find the graph fonksiyonu doğru çalışmıyor düzelt
@@ -619,6 +621,7 @@ def main(filename,subpath_length,starting_point):
     global_function_dict = {}
     global function_blocks
     global new_block_start_position
+
      
     r = r2pipe.open(FILE)
     name = FILE.split('/')[-1]
@@ -670,9 +673,6 @@ def main(filename,subpath_length,starting_point):
     vertex = global_block_dict[result_address]
     graph = global_function_dict[vertex]
     result_list = dfs_search(graph,vertex,target_count)
-    # result = nx.all_simple_paths(graph,vertex,graph.graph['last_nodes'],subpath_length + 1)
-    # temp_list = list(result)
-    # print(temp_list)
     return result_list
     
 #This function is for searching the graph and taking possible subpaths including calls
@@ -691,18 +691,36 @@ def dfs_search(graph,vertex,cutoff_length,path=[]):
         path = current_path.copy()
     return
 
+def is_convertible_to_int(string):
+    try:
+        int(string)
+        return True
+    except ValueError:
+        return False
+
 if __name__ == "__main__":
     print("Start#######################################Start")
-    is_graph_empty = True
-    target_count = 6
-    address = "0x140001370"
-    # linux için file pathleri
-    #filename = "/home/digdeci/VS Codes/C++_codes/test0/test1"
-    #filename = "/usr/bin/ls"
+    target_count = None
+    address = None
+    #filename = "C:/Users/digde/source/repos/Projects/Visual Studio 2019 projets/test/x64/Release/test.exe"
+    filename = None
+    args = sys.argv
+    for arg in args[1:]:
+        if os.path.exists(arg):
+            #it is a path
+            filename = arg
+        elif is_convertible_to_int(arg):
+            #it is target count
+            target_count = int(arg)
+        elif type(arg) == str:
+            # it is address
+            address = arg
+        else:
+            print("Given argument is invalid.Please check your argument again!.Exiting...")
+            exit(1)
 
     #windows için file pathleri
     #filename = "C:/Users/digde/VS Code projects/C++ Codes/Visual Studio 2019 projets/WordSearch/Release/WordSearch.exe"
-    filename = "C:/Users/digde/source/repos/Projects/Visual Studio 2019 projets/test/x64/Release/test.exe"
     result = main(filename,target_count,address)
     for path in result:
         print(path)
