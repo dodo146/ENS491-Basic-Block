@@ -202,8 +202,7 @@ def find_after_call_instruction(block,address):
                     break
     return after_call_address
 
-def split_call(block: Abl_Basic_Block, from_next, jump_true_addr,jump_false_addr):
-    print(block.start_address)
+def split_call(block: Abl_Basic_Block, from_next):
     r.cmd("e search.from = %s;" % block.start_address)
     r.cmd("e search.to = %s;" % hex(int(block.start_address,16) + block.size))
     global new_block_start_position,stop_splitting
@@ -375,9 +374,9 @@ def split_call(block: Abl_Basic_Block, from_next, jump_true_addr,jump_false_addr
                 ind = BASIC_BLOCKS.index(block)
                 BASIC_BLOCKS[ind] = block
 
-                print("Current block splitted.Looking for other calls...")
+                #print("Current block splitted.Looking for other calls...")
                 # Keep searching for further calls in the next block
-                split_call(next_block, 1,next_block.jump_true_address,next_block.jump_false_address) 
+                split_call(next_block, 1) 
 
             # GENERAL CASE. CALL is at the middle of somewhere.
             else:
@@ -443,8 +442,8 @@ def split_call(block: Abl_Basic_Block, from_next, jump_true_addr,jump_false_addr
 
                 global_block_dict[call_block.start_address] = call_block
                 global_block_dict[next_block.start_address] = next_block
-                print("Current block splitted.Looking for other calls...")
-                split_call(next_block, 1,next_block.jump_true_address,next_block.jump_false_address)  # Keep searching for further calls in the next block.
+                #print("Current block splitted.Looking for other calls...")
+                split_call(next_block, 1)  # Keep searching for further calls in the next block.
 
         else:
             #print("There is a CALL but address cannot be resolved")
@@ -457,9 +456,8 @@ def split_call(block: Abl_Basic_Block, from_next, jump_true_addr,jump_false_addr
 def update_predecessors(block,graph):
     #update its predecessors in the graph
         pred_list = list(graph.predecessors(block))
-        print(pred_list)
         if len(pred_list) == 0:
-            print(f"This block {block} has no predecessors.")
+            #print(f"This block {block} has no predecessors.")
             pass
         else:
             if len(pred_list) == 1:
@@ -470,7 +468,7 @@ def update_predecessors(block,graph):
                         graph.remove_edge(pred,n)
                 graph.add_edge(pred,block)
             else:
-                print(f"This block {block} has more than one predecessors. Do something")
+                #print(f"This block {block} has more than one predecessors. Do something")
                 for pred in pred_list:      
                     delete_neigbour_nodes = list(dict(graph.adj[pred].items()).keys())
                     for n in delete_neigbour_nodes:
@@ -606,7 +604,7 @@ def select_start_vertex(graph,address):
     addresses = list(graph.keys())
     addresses = [element.start_address for element in addresses]
     if address not in addresses:
-        return ""
+        raise ValueError("The address you entered doesn't exist. Please enter a valid address")
     else:
         return address
 
@@ -649,27 +647,25 @@ def main(filename,subpath_length,starting_point):
     create_graph_on_function_blocks()
 
     print("########### {} BASIC BLOCKS CREATED ###########".format(len(BASIC_BLOCKS)))
+    print("########### CREATED CFG FOR EVERY FUNCTION BLOCK ###################")
     print("########### SPLITTING CALLS ###################")
 
     for block in BASIC_BLOCKS:
-        split_call(block, 0,None,None)
+        split_call(block, 0)
         if stop_splitting:
             break
-
-
-
-    valid_address = False
-    print("\n\n")    
+    print("########### SPLITTING CALLS ###################")
+    print("########### PRINTING SUBPATHS ###################")    
+    print("\n")    
     target_count = subpath_length
 
-    while(not valid_address):
+    try:
         start_vertex = starting_point
         result_address = select_start_vertex(global_function_dict,start_vertex)
-        if result_address == "":
-            print("This is not a valid address. Please try again.")
-        else:
-            valid_address = True
-                
+    except ValueError as e:
+        print(e)
+        sys.exit(1)
+    
     vertex = global_block_dict[result_address]
     graph = global_function_dict[vertex]
     result_list = dfs_search(graph,vertex,target_count)
@@ -703,6 +699,7 @@ if __name__ == "__main__":
     target_count = None
     address = None
     #filename = "C:/Users/digde/source/repos/Projects/Visual Studio 2019 projets/test/x64/Release/test.exe"
+    #filename = "C:/Users/digde/VS Code projects/C++ Codes/Visual Studio 2019 projets/WordSearch/Release/WordSearch.exe"
     filename = None
     args = sys.argv
     for arg in args[1:]:
@@ -720,7 +717,6 @@ if __name__ == "__main__":
             exit(1)
 
     #windows için file pathleri
-    #filename = "C:/Users/digde/VS Code projects/C++ Codes/Visual Studio 2019 projets/WordSearch/Release/WordSearch.exe"
     result = main(filename,target_count,address)
     for path in result:
         print(path)
