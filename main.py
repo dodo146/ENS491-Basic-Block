@@ -203,6 +203,7 @@ def find_after_call_instruction(block,address):
     return after_call_address
 
 def split_call(block: Abl_Basic_Block, from_next):
+    print(block.start_address)
     r.cmd("e search.from = %s;" % block.start_address)
     r.cmd("e search.to = %s;" % hex(int(block.start_address,16) + block.size))
     global new_block_start_position,stop_splitting
@@ -696,25 +697,25 @@ def is_convertible_to_int(string):
 
 if __name__ == "__main__":
     print("Start#######################################Start")
-    target_count = None
-    address = None
+    target_count = 6
+    address = "0x4730"
     #filename = "C:/Users/digde/source/repos/Projects/Visual Studio 2019 projets/test/x64/Release/test.exe"
     #filename = "C:/Users/digde/VS Code projects/C++ Codes/Visual Studio 2019 projets/WordSearch/Release/WordSearch.exe"
-    filename = None
-    args = sys.argv
-    for arg in args[1:]:
-        if os.path.exists(arg):
-            #it is a path
-            filename = arg
-        elif is_convertible_to_int(arg):
-            #it is target count
-            target_count = int(arg)
-        elif type(arg) == str:
-            # it is address
-            address = arg
-        else:
-            print("Given argument is invalid.Please check your argument again!.Exiting...")
-            exit(1)
+    filename = "/usr/bin/ls"
+    # args = sys.argv
+    # for arg in args[1:]:
+    #     if os.path.exists(arg):
+    #         #it is a path
+    #         filename = arg
+    #     elif is_convertible_to_int(arg):
+    #         #it is target count
+    #         target_count = int(arg)
+    #     elif type(arg) == str:
+    #         # it is address
+    #         address = arg
+    #     else:
+    #         print("Given argument is invalid.Please check your argument again!.Exiting...")
+    #         exit(1)
 
     #windows için file pathleri
     result = main(filename,target_count,address)
