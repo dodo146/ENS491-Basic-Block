@@ -203,7 +203,8 @@ def find_after_call_instruction(block,address):
     return after_call_address
 
 def split_call(block: Abl_Basic_Block, from_next):
-    print(block.start_address)
+    if block.start_address == "0x32d0":
+        pass
     r.cmd("e search.from = %s;" % block.start_address)
     r.cmd("e search.to = %s;" % hex(int(block.start_address,16) + block.size))
     global new_block_start_position,stop_splitting
@@ -213,7 +214,8 @@ def split_call(block: Abl_Basic_Block, from_next):
     block.calls = []
     if (from_next):
         BASIC_BLOCKS.append(block)
-
+        print(f"This block {block.start_address} a splitted block")
+    print(block.start_address)
     if new_block_start_position is not None:
         if block.start_address == new_block_start_position.start_address:
             print("From now on there are splitted blocks. Stop splitting")
@@ -239,8 +241,12 @@ def split_call(block: Abl_Basic_Block, from_next):
             result = [""]
         result[0] = hexLeadingZeroEreaser(result[0])
         call_address = result[0]
-        if (is_hex(result[-1]) == True):        
+        try:
             jump_addr = global_block_dict[result[-1]]
+        except KeyError:
+            print("Jump address not found.Continue")
+            return
+        if (is_hex(result[-1]) == True and global_block_dict[result[-1]] in BASIC_BLOCKS):        
             # Construct the block which contains only the CALL
             call_block = Abl_Basic_Block(result[0])
             #call instructiondan bir sonraki instructionın adresini bul.O adres senin end_addresindir.
@@ -259,9 +265,20 @@ def split_call(block: Abl_Basic_Block, from_next):
             # CALL instruction is the only instruction in this block.
             if int(result[0], 16) == int(block.start_address, 16) and block.ninstr == 1:
                 
+                block.end_address = call_block.end_address
+                block.call_inst_address = call_block.call_inst_address
+                block.call_jump_address = call_block.call_jump_address
+                block.calls = call_block.calls
+                block.fcns = call_block.fcns
+                block.fcns_flag = call_block.fcns
+                block.fake_xrefs = call_block.fake_xrefs
+                block.xrefs = call_block.xrefs
+                block.instr = call_block.instr
+                block.ninstr = call_block.ninstr
+                block.size = call_block.size
+                block.first_splitted = call_block.first_splitted
+                block.start_block = call_block.start_block
                 block.calls_flag = True
-                block.fake_xrefs = block.fake_xrefs.union(block.xrefs)
-                block.calls.append(jump_addr)
                 return  # We do not need to do anything, it is already separated.
 
             # CALL is the last instruction. Modify the current block.
@@ -447,10 +464,12 @@ def split_call(block: Abl_Basic_Block, from_next):
                 split_call(next_block, 1)  # Keep searching for further calls in the next block.
 
         else:
-            #print("There is a CALL but address cannot be resolved")
+            print("There is a CALL but address cannot be resolved")
             pass
     else:
         #print("There are no call instructions")
+        #deneme amaçlı
+        print(block)
         pass
 
 
@@ -557,7 +576,9 @@ def parse_afb_result(block):
 def create_graph_on_function_blocks():
     g = nx.DiGraph()
     for block in BASIC_BLOCKS:
-        if block in function_blocks: 
+        if block.start_address == "0x3130":
+            pass
+        if block in function_blocks:
             jump_true_ind = False
             jump_false_ind = False
 
@@ -572,19 +593,23 @@ def create_graph_on_function_blocks():
                 continue
             else:
                 cfg_nodes = parse_afb_result(block)
-                for fblock in cfg_nodes:
-                    fblock.start_block = block
-                    if fblock.jump_true_address is not None:
-                        g.add_edge(fblock,fblock.jump_true_address)
-                        jump_true_ind = True
-                    if fblock.jump_false_address is not None:
-                        g.add_edge(fblock,fblock.jump_false_address)
-                        jump_false_ind = True
-                    
-                if jump_true_ind == False and jump_false_ind == False:
-                    g.add_node(fblock)
-
-
+                if len(cfg_nodes) == 1 and cfg_nodes[0] == block:
+                    block.start_block = block
+                    g.add_node(block)
+                else:    
+                    for fblock in cfg_nodes:
+                        jump_true_ind = False
+                        jump_false_ind = False
+                        fblock.start_block = block
+                        if fblock.jump_true_address is not None:
+                            g.add_edge(fblock,fblock.jump_true_address)
+                            jump_true_ind = True
+                        if fblock.jump_false_address is not None:
+                            g.add_edge(fblock,fblock.jump_false_address)
+                            jump_false_ind = True
+                        
+                        if jump_true_ind == False and jump_false_ind == False:
+                            g.add_node(fblock)
                 # leaves = [v for v,d in g.out_degree() if d == 0]
                 # g.graph["last_nodes"] = leaves
                 copy_g = g.copy()
@@ -655,6 +680,7 @@ def main(filename,subpath_length,starting_point):
         split_call(block, 0)
         if stop_splitting:
             break
+
     print("########### SPLITTING CALLS ###################")
     print("########### PRINTING SUBPATHS ###################")    
     print("\n")    
@@ -697,11 +723,11 @@ def is_convertible_to_int(string):
 
 if __name__ == "__main__":
     print("Start#######################################Start")
-    target_count = 6
-    address = "0x4730"
+    target_count = 10
+    address = "0x23e0"
     #filename = "C:/Users/digde/source/repos/Projects/Visual Studio 2019 projets/test/x64/Release/test.exe"
     #filename = "C:/Users/digde/VS Code projects/C++ Codes/Visual Studio 2019 projets/WordSearch/Release/WordSearch.exe"
-    filename = "/usr/bin/ls"
+    filename = "/usr/bin/cat"
     # args = sys.argv
     # for arg in args[1:]:
     #     if os.path.exists(arg):
